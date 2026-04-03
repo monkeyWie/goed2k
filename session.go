@@ -14,33 +14,35 @@ import (
 )
 
 type Session struct {
-	mu                     sync.Mutex
-	diskMu                 sync.Mutex
-	searchMu               sync.Mutex
-	transfers              map[protocol.Hash]*Transfer
-	connections            []*PeerConnection
-	callbacks              map[int32]protocol.Hash
-	settings               Settings
-	lastTick               int64
-	accumulator            Statistics
-	serverConnection       *ServerConnection
-	serverConnections      map[string]*ServerConnection
-	serverConnectionPolicy map[string]*ServerConnectionPolicy
-	configuredServers      map[string]*net.TCPAddr
-	clientID               int32
-	tcpFlags               int32
-	auxPort                int32
-	diskTasks              []*diskTask
-	diskResults            chan diskTaskResult
-	listener               *net.TCPListener
-	incomingConns          chan net.Conn
-	dhtTracker             *DHTTracker
-	upnp                   *upnpManager
-	uploadQueue            *UploadQueue
-	credits                *PeerCreditManager
-	friendSlots            map[string]bool
-	activeSearch           *searchTask
-	nextSearchID           uint32
+	mu                       sync.Mutex
+	diskMu                   sync.Mutex
+	searchMu                 sync.Mutex
+	transfers                map[protocol.Hash]*Transfer
+	connections              []*PeerConnection
+	callbacks                map[int32]protocol.Hash
+	settings                 Settings
+	lastTick                 int64
+	accumulator              Statistics
+	serverConnection         *ServerConnection
+	serverConnections        map[string]*ServerConnection
+	serverConnectionPolicy   map[string]*ServerConnectionPolicy
+	configuredServers        map[string]*net.TCPAddr
+	clientID                 int32
+	tcpFlags                 int32
+	auxPort                  int32
+	diskTasks                []*diskTask
+	diskResults              chan diskTaskResult
+	listener                 *net.TCPListener
+	incomingConns            chan net.Conn
+	dhtTracker               *DHTTracker
+	upnp                     *upnpManager
+	uploadQueue              *UploadQueue
+	credits                  *PeerCreditManager
+	friendSlots              map[string]bool
+	activeSearch             *searchTask
+	nextSearchID             uint32
+	lastKadPublishEndpoint   protocol.Endpoint
+	lastKadPeriodicPublishAt int64
 }
 
 type diskTask struct {
@@ -429,6 +431,7 @@ func (s *Session) SecondTick(currentSessionTime, tickIntervalMS int64) {
 		s.uploadQueue.Process()
 	}
 	s.tickSearches(currentSessionTime)
+	s.maybePeriodicKadPublish(currentSessionTime)
 	s.processDiskTasks()
 	s.accumulator.SecondTick(tickIntervalMS)
 	s.ConnectNewPeers()
@@ -921,6 +924,7 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 	}
 	var kick []*Transfer
 	var offerFiles []serverproto.OfferFile
+	var offerFiles []serverproto.OfferFile
 	s.mu.Lock()
 	if s.serverConnection == nil || !s.serverConnection.IsHandshakeCompleted() {
 		s.serverConnection = sc
@@ -934,7 +938,7 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 		if transfer == nil || transfer.IsPaused() || transfer.IsAborted() {
 			continue
 		}
-		if transfer.IsFinished() {
+		if transfer.isFinishedForSharePublish() {
 			offerFiles = append(offerFiles, serverproto.OfferFile{
 				Hash: transfer.GetHash(),
 				Name: transfer.FileName(),
@@ -949,6 +953,7 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 		packet := serverproto.NewOfferFiles(clientID, s.GetListenPort(), offerFiles)
 		sc.SendOfferFiles(&packet)
 	}
+	s.publishAllFinishedTransfersKADAfterServerChange()
 	for _, transfer := range kick {
 		s.RequestSourcesNow(transfer)
 	}
@@ -962,7 +967,7 @@ func (s *Session) PublishTransferToServer(t *Transfer) {
 	sc := s.serverConnection
 	clientID := s.clientID
 	s.mu.Unlock()
-	if sc == nil || !sc.IsHandshakeCompleted() || clientID == 0 || t.IsPaused() || t.IsAborted() || !t.IsFinished() {
+	if sc == nil || !sc.IsHandshakeCompleted() || clientID == 0 || t.IsPaused() || t.IsAborted() || !t.isFinishedForSharePublish() {
 		return
 	}
 	packet := serverproto.NewOfferFiles(clientID, s.GetListenPort(), []serverproto.OfferFile{{
