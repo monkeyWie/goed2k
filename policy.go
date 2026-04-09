@@ -309,13 +309,17 @@ func (p *Policy) PeersForSourceExchange(exclude protocol.Endpoint, limit int) []
 		if len(out) >= limit {
 			break
 		}
-		if exclude.Defined() && pe.Endpoint.Equal(exclude) {
+		if exclude.Defined() && pe.Endpoint.Defined() && pe.Endpoint.Equal(exclude) {
 			continue
 		}
-		if !pe.Connectable || !pe.Endpoint.Defined() {
+		if !pe.Connectable || !pe.HasDialableAddress() {
 			continue
 		}
-		if IsLocalAddress(pe.Endpoint.IP()) {
+		if pe.DialAddr != nil {
+			if isFilteredPeerTCPAddr(pe.DialAddr) {
+				continue
+			}
+		} else if IsLocalAddress(pe.Endpoint.IP()) {
 			continue
 		}
 		out = append(out, pe)

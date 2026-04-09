@@ -69,6 +69,15 @@
 - `go test ./protocol/client -run Source`：协议层 golden 与往返。
 - `go test . -run 'SourceExchange|PeersFor|AnswerSources2'`：goed2k 包内 Policy 与合并路径。
 
+## 与 KADV6 / IPv6 的关系
+
+- **[protocol/kadv6](../protocol/kadv6)** 实现的是 **KADV6 的 UDP** 报文与节点/搜索条目（含 [`EndpointV6`](../protocol/kadv6/types.go)、[`SearchEntry.SourceAddr()`](../protocol/kadv6/types.go) 提取 **IPv6 TCP** 源）。**不包含** EMule 的 TCP 扩展操作码；Source Exchange 仍只在 **TCP + `OP_EMULEPROT`** 上收发。
+- **分层**：KADV6 负责 IPv6 DHT 上的发现/发布；与对端建立 ED2K **TCP** 连接后，仍走同一套 `PeerConnection` → `RequestSources2` / `AnswerSources2` → `Policy`。
+- **AnswerSources2 与 IPv4**：经典 aMule 条目中 `UserID` 为 **IPv4 hybrid `uint32`**，**无法编码原生 IPv6 地址**。当前实现策略：
+  - **应答侧**（[`buildSourceExchangeEntries`](../peer_connection.go)）：仅包含可用 **uint32 表达的来源**（IPv4 `protocol.Endpoint`，或 `Peer.DialAddr` 为 **IPv4** / **IPv4-mapped IPv6** 可映射为 IPv4 的项）；**纯 IPv6** 来源**不参与** SX 广播（可通过 KADV6 搜索结果等其它路径传播）。
+  - **解析侧**：仍按既有布局解析；合并为 `Peer` 时仅产生 IPv4 `Endpoint`（与现网一致）。
+- **双栈拨号**：`Peer` 可选携带 [`DialAddr *net.TCPAddr`](../peer.go)（例如由 [`PeerFromKADV6SearchEntry`](../peer_kadv6.go) 从 KADV6 `SearchEntry` 构造）；`PeerConnection.Connect` 优先使用该地址拨号，以便在 **`protocol.Endpoint` 仍为 IPv4-only** 的前提下连接 **IPv6 TCP** 对端。详见 [kadv6-implementation-plan.md](kadv6-implementation-plan.md) 第 10 节。
+
 ## 参考源码（aMule）
 
 - `src/DownloadClient.cpp`：独立 `OP_REQUESTSOURCES2` 包载荷。

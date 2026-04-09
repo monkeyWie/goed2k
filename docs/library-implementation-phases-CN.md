@@ -109,6 +109,10 @@
 
 **说明**：见专文 [source-exchange-CN.md](source-exchange-CN.md)。
 
+### 与 KADV6（`protocol/kadv6`）的衔接
+
+- **UDP 协议包**在 [`protocol/kadv6`](../protocol/kadv6)；**TCP 拨号与 SX** 在 `goed2k` 根包：[`Peer.DialAddr`](../peer.go)、[`PeerFromKADV6SearchEntry` / `Transfer.AddPeerFromKADV6Search`](../peer_kadv6.go)、[`PeerConnection.Connect`](../peer_connection.go) 优先使用 `DialAddr`；经典 `AnswerSources2` 仍仅编码 **IPv4 hybrid**（纯 IPv6 来源不参与 SX 广播）。详见 [source-exchange-CN.md](source-exchange-CN.md)「与 KADV6 / IPv6 的关系」与 [kadv6-implementation-plan.md](kadv6-implementation-plan.md) 第 10 节。
+
 ---
 
 ## 阶段 9：Secure Ident 预研（未完整实现）
@@ -136,3 +140,4 @@
 | 客户端状态 | `client_state.go`、`client.go` |
 | TUI | `cmd/goed2k/tui.go` |
 | 来源交换 | `protocol/client/source_exchange.go`、`peer_connection.go`、`policy.go` |
+| KADV6 + 双栈 Peer | `protocol/kadv6`、`peer.go`、`peer_kadv6.go` |

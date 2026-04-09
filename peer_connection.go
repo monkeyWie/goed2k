@@ -195,11 +195,20 @@ func NewIncomingPeerConnection(session *Session, conn net.Conn) *PeerConnection 
 }
 
 func (p *PeerConnection) HasEndpoint() bool {
+	if p.peerInfo != nil && p.peerInfo.DialAddr != nil {
+		return true
+	}
 	return p.endpoint.Defined()
 }
 
 func (p *PeerConnection) Connect() error {
-	addr, err := p.endpoint.ToTCPAddr()
+	var addr *net.TCPAddr
+	var err error
+	if p.peerInfo != nil {
+		addr, err = p.peerInfo.peerDialTCPAddr()
+	} else {
+		addr, err = p.endpoint.ToTCPAddr()
+	}
 	if err != nil {
 		return err
 	}
@@ -1325,13 +1334,20 @@ func (p *PeerConnection) buildSourceExchangeEntries(peers []Peer) []clientproto.
 	sx1 := p.remotePeerInfo.Misc1.SourceExchange1Ver
 	out := make([]clientproto.SourceExchangeEntry, 0, len(peers))
 	for _, pe := range peers {
-		uid := uint32(pe.Endpoint.IP())
+		if !pe.CanEncodeAnswerSources2() {
+			continue
+		}
+		ep, ok := pe.EffectiveEndpointForSX()
+		if !ok {
+			continue
+		}
+		uid := uint32(ep.IP())
 		if sx1 <= 2 {
 			uid = clientproto.SwapUint32(uid)
 		}
 		out = append(out, clientproto.SourceExchangeEntry{
 			UserID:       uid,
-			TCPPort:      uint16(pe.Endpoint.Port()),
+			TCPPort:      uint16(ep.Port()),
 			ServerIP:     0,
 			ServerPort:   0,
 			UserHash:     protocol.Invalid,

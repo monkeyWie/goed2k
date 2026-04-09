@@ -449,3 +449,22 @@ Reason:
 - protocol definitions are the narrowest dependency base
 - they clarify all later runtime code
 - they are easy to test without touching the rest of the system
+
+## 10. Milestone: 下载源接入与 Source Exchange 对齐（Phase 1 之后）
+
+Phase 1 **不包含**「搜索结果进入当前 peer 连接管线」与「IPv6 文件传输」；在完成 KADV6 `Tracker`、搜索/发布可用后，单独推进本里程碑，并与 [source-exchange-CN.md](source-exchange-CN.md) 中的说明一致。
+
+### 目标
+
+1. **KADV6 → Policy**：将 `SearchSource` / `SearchKeys` 等得到的 [`SearchEntry`](protocol/kadv6/types.go) 转为可连接的 [`Peer`](peer.go)（例如通过 [`PeerFromKADV6SearchEntry`](peer_kadv6.go)），并入 `Transfer.policy`，并由 `ConnectToPeer` 发起 TCP。
+2. **双栈拨号**：`Peer` 使用可选 `DialAddr *net.TCPAddr` 承载 IPv6 TCP，与现有 IPv4 `protocol.Endpoint` 并存；`PeerConnection.Connect` 优先 `DialAddr`。
+3. **Source Exchange**：经典 `AnswerSources2` 的 `uint32 UserID` 仍仅支持 **IPv4 语义**；对纯 IPv6 来源在 **SX 应答中省略**（不扩展二进制协议前），避免对端解析错位；请求/解析与合并路径见 `protocol/client/source_exchange.go`、`peer_connection.go`。
+
+### 依赖与风险
+
+- 需先具备 **KADV6Tracker** 运行时与 Client 挂载点（见上文 Milestone 2+）。
+- 若未来确认 eMule/aMule 存在 **IPv6 SX 扩展** 二进制格式，再在 `protocol/client` 增加版本化编解码与 golden 测试。
+
+### 验收
+
+- KADV6 搜到的 IPv6 源可建 TCP 后，与现有 IPv4 SX **互不干扰**；构造 `AnswerSources2` 时不会因无法编码 IPv6 而崩溃（明确跳过纯 IPv6 项）。
