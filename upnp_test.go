@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	internalupnp "github.com/monkeyWie/goed2k/internal/upnp"
+	internalupnp "github.com/goed2k/core/internal/upnp"
 )
 
 func TestUPnPPortMapperMapAndClose(t *testing.T) {

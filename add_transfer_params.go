@@ -3,8 +3,8 @@ package goed2k
 import (
 	"os"
 
-	"github.com/monkeyWie/goed2k/disk"
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/disk"
+	"github.com/goed2k/core/protocol"
 )
 
 type AddTransferParams struct {

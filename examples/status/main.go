@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/monkeyWie/goed2k"
+	"github.com/goed2k/core"
 )
 
 func main() {

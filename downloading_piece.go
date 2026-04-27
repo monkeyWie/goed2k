@@ -1,6 +1,6 @@
 package goed2k
 
-import "github.com/monkeyWie/goed2k/data"
+import "github.com/goed2k/core/data"
 
 type BlockState byte
 

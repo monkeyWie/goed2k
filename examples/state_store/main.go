@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/monkeyWie/goed2k"
+	"github.com/goed2k/core"
 )
 
 type memoryStore struct {

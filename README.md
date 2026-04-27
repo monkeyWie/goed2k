@@ -33,19 +33,27 @@
 - [x] 任务、peer、server、piece 状态快照
 - [x] 任务进度订阅
 - [x] 可交互的终端下载管理器
+- [x] 客户端间来源交换（Source Exchange，`OP_REQUESTSOURCES2` / `OP_ANSWERSOURCES2`）
+
+## 相关文档
+
+- [本地共享库与周边能力：分阶段实现说明（中文）](docs/library-implementation-phases-CN.md)
+- [Kademlia v6 协议说明（中文）](docs/kadv6-protocol-CN.md)
+- [客户端来源交换（Source Exchange）实现说明（中文）](docs/source-exchange-CN.md)
+- [Secure Ident 计划](docs/secure-ident-plan.md)
 
 ## 安装
 
 ### 可执行文件
 
 ```bash
-go install github.com/monkeyWie/goed2k/cmd/goed2k@latest
+go install github.com/goed2k/core/cmd/goed2k@latest
 ```
 
 ### 作为库
 
 ```bash
-go get github.com/monkeyWie/goed2k
+go get github.com/goed2k/core
 ```
 
 ## 快速开始
@@ -70,7 +78,7 @@ package main
 import (
 	"log"
 
-	"github.com/monkeyWie/goed2k"
+	"github.com/goed2k/core"
 )
 
 func main() {

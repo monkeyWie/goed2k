@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/monkeyWie/goed2k/data"
-	"github.com/monkeyWie/goed2k/protocol"
-	serverproto "github.com/monkeyWie/goed2k/protocol/server"
+	"github.com/goed2k/core/data"
+	"github.com/goed2k/core/protocol"
+	serverproto "github.com/goed2k/core/protocol/server"
 )
 
 type testDiskCallable struct {

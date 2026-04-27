@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/monkeyWie/goed2k/internal/logx"
+	"github.com/goed2k/core/internal/logx"
 )
 
 type packetFactory func() Serializable

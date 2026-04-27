@@ -4,12 +4,13 @@ import (
 	"math/rand"
 	"slices"
 
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/protocol"
 )
 
 const (
-	MaxPeerListSize     = 100
-	MinReconnectTimeout = 10
+	MaxPeerListSize         = 100
+	MinReconnectTimeout     = 10
+	SourceExchangePeerLimit = 50
 )
 
 type Policy struct {
@@ -296,6 +297,34 @@ func (p Policy) FindPeer(ep protocol.Endpoint) *Peer {
 		return &p.peers[pos]
 	}
 	return nil
+}
+
+// PeersForSourceExchange 返回用于 OP_ANSWERSOURCES2 的候选来源：可连接、非 exclude 端点、限流。
+func (p *Policy) PeersForSourceExchange(exclude protocol.Endpoint, limit int) []Peer {
+	if p == nil || limit <= 0 {
+		return nil
+	}
+	out := make([]Peer, 0, minInt(limit, len(p.peers)))
+	for _, pe := range p.peers {
+		if len(out) >= limit {
+			break
+		}
+		if exclude.Defined() && pe.Endpoint.Defined() && pe.Endpoint.Equal(exclude) {
+			continue
+		}
+		if !pe.Connectable || !pe.HasDialableAddress() {
+			continue
+		}
+		if pe.DialAddr != nil {
+			if isFilteredPeerTCPAddr(pe.DialAddr) {
+				continue
+			}
+		} else if IsLocalAddress(pe.Endpoint.IP()) {
+			continue
+		}
+		out = append(out, pe)
+	}
+	return out
 }
 
 func minInt(a, b int) int {

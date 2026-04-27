@@ -5,8 +5,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/monkeyWie/goed2k/protocol"
-	serverproto "github.com/monkeyWie/goed2k/protocol/server"
+	"github.com/goed2k/core/protocol"
+	serverproto "github.com/goed2k/core/protocol/server"
 )
 
 func TestServerSearchRequestEncodesQueryAndFilters(t *testing.T) {

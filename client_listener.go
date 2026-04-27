@@ -3,7 +3,7 @@ package goed2k
 import (
 	"time"
 
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/protocol"
 )
 
 // ClientStatusEvent is a point-in-time snapshot emitted by a Client listener.

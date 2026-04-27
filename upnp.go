@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/monkeyWie/goed2k/internal/logx"
-	internalupnp "github.com/monkeyWie/goed2k/internal/upnp"
+	"github.com/goed2k/core/internal/logx"
+	internalupnp "github.com/goed2k/core/internal/upnp"
 )
 
 const defaultUPnPDiscoverTimeout = 3 * time.Second

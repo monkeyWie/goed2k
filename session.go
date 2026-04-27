@@ -6,41 +6,45 @@ import (
 	"os"
 	"sync"
 
-	"github.com/monkeyWie/goed2k/disk"
-	"github.com/monkeyWie/goed2k/internal/logx"
-	"github.com/monkeyWie/goed2k/protocol"
-	kadproto "github.com/monkeyWie/goed2k/protocol/kad"
-	serverproto "github.com/monkeyWie/goed2k/protocol/server"
+	"github.com/goed2k/core/disk"
+	"github.com/goed2k/core/internal/logx"
+	"github.com/goed2k/core/protocol"
+	kadproto "github.com/goed2k/core/protocol/kad"
+	serverproto "github.com/goed2k/core/protocol/server"
 )
 
 type Session struct {
-	mu                     sync.Mutex
-	diskMu                 sync.Mutex
-	searchMu               sync.Mutex
-	transfers              map[protocol.Hash]*Transfer
-	connections            []*PeerConnection
-	callbacks              map[int32]protocol.Hash
-	settings               Settings
-	lastTick               int64
-	accumulator            Statistics
-	serverConnection       *ServerConnection
-	serverConnections      map[string]*ServerConnection
-	serverConnectionPolicy map[string]*ServerConnectionPolicy
-	configuredServers      map[string]*net.TCPAddr
-	clientID               int32
-	tcpFlags               int32
-	auxPort                int32
-	diskTasks              []*diskTask
-	diskResults            chan diskTaskResult
-	listener               *net.TCPListener
-	incomingConns          chan net.Conn
-	dhtTracker             *DHTTracker
-	upnp                   *upnpManager
-	uploadQueue            *UploadQueue
-	credits                *PeerCreditManager
-	friendSlots            map[string]bool
-	activeSearch           *searchTask
-	nextSearchID           uint32
+	mu                       sync.Mutex
+	diskMu                   sync.Mutex
+	searchMu                 sync.Mutex
+	transfers                map[protocol.Hash]*Transfer
+	connections              []*PeerConnection
+	callbacks                map[int32]protocol.Hash
+	settings                 Settings
+	lastTick                 int64
+	accumulator              Statistics
+	serverConnection         *ServerConnection
+	serverConnections        map[string]*ServerConnection
+	serverConnectionPolicy   map[string]*ServerConnectionPolicy
+	configuredServers        map[string]*net.TCPAddr
+	clientID                 int32
+	tcpFlags                 int32
+	auxPort                  int32
+	diskTasks                []*diskTask
+	diskResults              chan diskTaskResult
+	listener                 *net.TCPListener
+	incomingConns            chan net.Conn
+	dhtTracker               *DHTTracker
+	upnp                     *upnpManager
+	uploadQueue              *UploadQueue
+	credits                  *PeerCreditManager
+	friendSlots              map[string]bool
+	activeSearch             *searchTask
+	nextSearchID             uint32
+	lastKadPublishEndpoint   protocol.Endpoint
+	lastKadPeriodicPublishAt int64
+	sharedStore              *SharedStore
+	sharedDirs               []string
 }
 
 type diskTask struct {
@@ -71,6 +75,8 @@ func NewSession(st Settings) *Session {
 		incomingConns:          make(chan net.Conn, 32),
 		credits:                NewPeerCreditManager(),
 		friendSlots:            make(map[string]bool),
+		sharedStore:            NewSharedStore(),
+		sharedDirs:             make([]string, 0),
 	}
 	session.initUploadQueue()
 	return session
@@ -429,6 +435,7 @@ func (s *Session) SecondTick(currentSessionTime, tickIntervalMS int64) {
 		s.uploadQueue.Process()
 	}
 	s.tickSearches(currentSessionTime)
+	s.maybePeriodicKadPublish(currentSessionTime)
 	s.processDiskTasks()
 	s.accumulator.SecondTick(tickIntervalMS)
 	s.ConnectNewPeers()
@@ -919,8 +926,8 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 	if sc == nil {
 		return
 	}
+	offerFiles := s.collectPublishableOfferFiles()
 	var kick []*Transfer
-	var offerFiles []serverproto.OfferFile
 	s.mu.Lock()
 	if s.serverConnection == nil || !s.serverConnection.IsHandshakeCompleted() {
 		s.serverConnection = sc
@@ -934,12 +941,7 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 		if transfer == nil || transfer.IsPaused() || transfer.IsAborted() {
 			continue
 		}
-		if transfer.IsFinished() {
-			offerFiles = append(offerFiles, serverproto.OfferFile{
-				Hash: transfer.GetHash(),
-				Name: transfer.FileName(),
-				Size: transfer.Size(),
-			})
+		if transfer.isFinishedForSharePublish() {
 			continue
 		}
 		kick = append(kick, transfer)
@@ -949,6 +951,7 @@ func (s *Session) OnServerIDChange(sc *ServerConnection, clientID, tcpFlags, aux
 		packet := serverproto.NewOfferFiles(clientID, s.GetListenPort(), offerFiles)
 		sc.SendOfferFiles(&packet)
 	}
+	s.publishAllFinishedTransfersKADAfterServerChange()
 	for _, transfer := range kick {
 		s.RequestSourcesNow(transfer)
 	}
@@ -962,7 +965,7 @@ func (s *Session) PublishTransferToServer(t *Transfer) {
 	sc := s.serverConnection
 	clientID := s.clientID
 	s.mu.Unlock()
-	if sc == nil || !sc.IsHandshakeCompleted() || clientID == 0 || t.IsPaused() || t.IsAborted() || !t.IsFinished() {
+	if sc == nil || !sc.IsHandshakeCompleted() || clientID == 0 || t.IsPaused() || t.IsAborted() || !t.isFinishedForSharePublish() {
 		return
 	}
 	packet := serverproto.NewOfferFiles(clientID, s.GetListenPort(), []serverproto.OfferFile{{

@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 
-	"github.com/monkeyWie/goed2k/data"
+	"github.com/goed2k/core/data"
 )
 
 type TransferResumeData struct {

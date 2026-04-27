@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	ed2k "github.com/monkeyWie/goed2k"
+	ed2k "github.com/goed2k/core"
 )
 
 const (

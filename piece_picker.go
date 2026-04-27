@@ -1,8 +1,8 @@
 package goed2k
 
 import (
-	"github.com/monkeyWie/goed2k/data"
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/data"
+	"github.com/goed2k/core/protocol"
 )
 
 const EndGameDPLimit = 4

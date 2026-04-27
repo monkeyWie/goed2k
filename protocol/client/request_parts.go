@@ -3,8 +3,8 @@ package client
 import (
 	"bytes"
 
-	"github.com/monkeyWie/goed2k/data"
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/data"
+	"github.com/goed2k/core/protocol"
 )
 
 const partsInRequest = 3

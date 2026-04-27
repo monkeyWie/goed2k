@@ -1,4 +1,4 @@
-module github.com/monkeyWie/goed2k
+module github.com/goed2k/core
 
 go 1.24.2
 

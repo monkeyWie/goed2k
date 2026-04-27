@@ -5,8 +5,8 @@ import (
 	"io"
 	"net"
 
-	"github.com/monkeyWie/goed2k/internal/logx"
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/internal/logx"
+	"github.com/goed2k/core/protocol"
 )
 
 const connectionIODeadlineNS = int64(5 * 1000 * 1000)

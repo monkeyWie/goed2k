@@ -2,7 +2,7 @@
 //
 // The public API is exposed from the module root so callers can import:
 //
-//	import "github.com/monkeyWie/goed2k"
+//	import "github.com/goed2k/core"
 //
 // Lower-level protocol helpers are available from subpackages such as
 // protocol, protocol/client, protocol/server, and protocol/kad.

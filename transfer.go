@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/monkeyWie/goed2k/data"
-	"github.com/monkeyWie/goed2k/disk"
-	"github.com/monkeyWie/goed2k/protocol"
+	"github.com/goed2k/core/data"
+	"github.com/goed2k/core/disk"
+	"github.com/goed2k/core/protocol"
 )
 
 const InvalidETA int64 = -1
@@ -261,6 +261,16 @@ func (t *Transfer) TryConnectPeer(sessionTime int64) (bool, error) {
 
 func (t *Transfer) IsFinished() bool {
 	return t.numPieces == 0 || t.picker.NumHave() == t.picker.NumPieces()
+}
+
+func (t *Transfer) isFinishedForSharePublish() bool {
+	if t == nil {
+		return false
+	}
+	if t.state == Finished {
+		return true
+	}
+	return t.IsFinished()
 }
 
 func (t *Transfer) ResumeData() *protocol.TransferResumeData {
@@ -736,7 +746,9 @@ func (t *Transfer) finished() {
 	t.state = Finished
 	if t.session != nil {
 		t.session.SubmitDiskTask(NewAsyncRelease(t, false))
+		t.session.tryAddCompletedTransferToSharedStore(t)
 		t.session.PublishTransferToServer(t)
+		t.session.PublishTransferToKAD(t)
 	}
 	t.needSaveResumeData = true
 }

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/monkeyWie/goed2k/protocol"
-	kadproto "github.com/monkeyWie/goed2k/protocol/kad"
+	"github.com/goed2k/core/protocol"
+	kadproto "github.com/goed2k/core/protocol/kad"
 )
 
 type KadRoutingNode struct {

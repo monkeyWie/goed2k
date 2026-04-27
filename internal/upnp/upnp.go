@@ -48,7 +48,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/monkeyWie/goed2k/internal/logx"
+	"github.com/goed2k/core/internal/logx"
 )
 
 var (

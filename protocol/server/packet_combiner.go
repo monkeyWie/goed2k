@@ -1,6 +1,6 @@
 package server
 
-import "github.com/monkeyWie/goed2k/protocol"
+import "github.com/goed2k/core/protocol"
 
 const (
 	opGetServerList   byte = 0x14
