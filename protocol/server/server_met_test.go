@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/binary"
 	"path/filepath"
 	"testing"
 )
@@ -68,5 +69,27 @@ func TestServerMetRoundTripAndGetters(t *testing.T) {
 	}
 	if got := parsed.Addresses(); len(got) != 2 || got[0] != "192.168.0.9:5600" || got[1] != "mule.org:45567" {
 		t.Fatalf("unexpected addresses: %#v", got)
+	}
+}
+
+func TestParseServerMetRejectsInvalidHeader(t *testing.T) {
+	payload := []byte{'<', 'h', 't', 'm', 'l'}
+
+	if _, err := ParseServerMet(payload); err == nil {
+		t.Fatal("expected invalid header error")
+	}
+}
+
+func TestParseServerMetRejectsImpossibleEntryCount(t *testing.T) {
+	var payload bytes.Buffer
+	if err := payload.WriteByte(serverMetHeader); err != nil {
+		t.Fatalf("write header: %v", err)
+	}
+	if err := binary.Write(&payload, binary.LittleEndian, uint32(1)); err != nil {
+		t.Fatalf("write count: %v", err)
+	}
+
+	if _, err := ParseServerMet(payload.Bytes()); err == nil {
+		t.Fatal("expected invalid entry count error")
 	}
 }

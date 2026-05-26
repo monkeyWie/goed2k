@@ -14,6 +14,7 @@ import (
 const (
 	serverMetHeader               = 0x0E
 	serverMetHeaderWithLargeFiles = 0x0F
+	minServerMetEntryBytes        = 10
 
 	serverTagName        = 0x01
 	serverTagDescription = 0x0B
@@ -95,11 +96,14 @@ func (m *ServerMet) Get(src *bytes.Reader) error {
 	case serverMetHeader, serverMetHeaderWithLargeFiles:
 		m.Header = header
 	default:
-		m.Header = serverMetHeader
+		return errors.New("invalid server.met header")
 	}
 	count, err := protocol.ReadUInt32(src)
 	if err != nil {
 		return err
+	}
+	if count > uint32(src.Len()/minServerMetEntryBytes) {
+		return errors.New("invalid server.met entry count")
 	}
 	m.Servers = make([]ServerMetEntry, int(count))
 	for idx := range m.Servers {
