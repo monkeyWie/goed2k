@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/binary"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -13,6 +14,12 @@ func TestLoadServerMetFixtures(t *testing.T) {
 		filepath.Join("..", "..", "..", "jed2k", "core", "src", "main", "resources", "server2.met"),
 	}
 	for _, path := range fixtures {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				t.Skipf("fixture %s not available", path)
+			}
+			t.Fatalf("stat %s: %v", path, err)
+		}
 		met, err := LoadServerMet(path)
 		if err != nil {
 			t.Fatalf("load %s: %v", path, err)
