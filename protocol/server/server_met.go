@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -18,6 +19,8 @@ const (
 	serverTagName        = 0x01
 	serverTagDescription = 0x0B
 	serverTagPreference  = 0x0E
+
+	serverMetEntryMinBytes = 6 + 4
 )
 
 type ServerMet struct {
@@ -100,6 +103,10 @@ func (m *ServerMet) Get(src *bytes.Reader) error {
 	count, err := protocol.ReadUInt32(src)
 	if err != nil {
 		return err
+	}
+	maxCount := uint32(src.Len() / serverMetEntryMinBytes)
+	if count > maxCount {
+		return fmt.Errorf("server.met declares %d servers, but payload can contain at most %d", count, maxCount)
 	}
 	m.Servers = make([]ServerMetEntry, int(count))
 	for idx := range m.Servers {
