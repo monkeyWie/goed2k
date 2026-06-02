@@ -2,6 +2,8 @@ package server
 
 import (
 	"bytes"
+	"encoding/binary"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -12,16 +14,47 @@ func TestLoadServerMetFixtures(t *testing.T) {
 		filepath.Join("..", "..", "..", "jed2k", "core", "src", "main", "resources", "server2.met"),
 	}
 	for _, path := range fixtures {
-		met, err := LoadServerMet(path)
-		if err != nil {
-			t.Fatalf("load %s: %v", path, err)
-		}
-		if len(met.Servers) == 0 {
-			t.Fatalf("expected entries in %s", path)
-		}
-		if len(met.Addresses()) == 0 {
-			t.Fatalf("expected addresses in %s", path)
-		}
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			if _, err := os.Stat(path); err != nil {
+				if os.IsNotExist(err) {
+					t.Skipf("fixture not found: %s", path)
+				}
+				t.Fatalf("stat %s: %v", path, err)
+			}
+			met, err := LoadServerMet(path)
+			if err != nil {
+				t.Fatalf("load %s: %v", path, err)
+			}
+			if len(met.Servers) == 0 {
+				t.Fatalf("expected entries in %s", path)
+			}
+			if len(met.Addresses()) == 0 {
+				t.Fatalf("expected addresses in %s", path)
+			}
+		})
+	}
+}
+
+func TestParseServerMetRejectsImpossibleServerCount(t *testing.T) {
+	payload := []byte{serverMetHeader}
+	payload = binary.LittleEndian.AppendUint32(payload, 0x8788d2)
+	payload = append(payload, bytes.Repeat([]byte{0}, 0xa63)...)
+
+	if _, err := ParseServerMet(payload); err == nil {
+		t.Fatal("expected impossible server count to be rejected")
+	}
+}
+
+func TestParseServerMetRejectsImpossibleTagCount(t *testing.T) {
+	payload := []byte{serverMetHeader}
+	payload = binary.LittleEndian.AppendUint32(payload, 1)
+	payload = binary.LittleEndian.AppendUint32(payload, 0x01020304)
+	payload = binary.LittleEndian.AppendUint16(payload, 4661)
+	payload = binary.LittleEndian.AppendUint32(payload, 0x8788d2)
+	payload = append(payload, bytes.Repeat([]byte{0}, 9)...)
+
+	if _, err := ParseServerMet(payload); err == nil {
+		t.Fatal("expected impossible tag count to be rejected")
 	}
 }
 

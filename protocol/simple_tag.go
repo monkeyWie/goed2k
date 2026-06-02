@@ -1,6 +1,9 @@
 package protocol
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 const (
 	TagTypeString = 0x02
@@ -9,6 +12,8 @@ const (
 	TagTypeUint8  = 0x09
 	TagTypeUint64 = 0x0B
 	TagTypeStr1   = 0x11
+
+	tagMinBytes = 2
 )
 
 type SimpleTag struct {
@@ -188,6 +193,10 @@ func (t *TagList) Get(src *bytes.Reader) error {
 	count, err := ReadUInt32(src)
 	if err != nil {
 		return err
+	}
+	maxCount := uint32(src.Len() / tagMinBytes)
+	if count > maxCount {
+		return fmt.Errorf("tag list declares %d tags, but payload can contain at most %d", count, maxCount)
 	}
 	list := make([]SimpleTag, int(count))
 	for i := 0; i < int(count); i++ {
